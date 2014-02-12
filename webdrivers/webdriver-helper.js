@@ -1,10 +1,11 @@
-(function () {
+;(function () {
     "use strict";
 
     var request = require('request'),
         webdriver = require('selenium-webdriver'),
         executer = require('../node_modules/selenium-webdriver/executors'),
         driver = null,
+        waitForCallback = null,
         newRun;
 
     function getWebdriverSessions(callback) {
@@ -29,6 +30,9 @@
         } else {
             driver = webdriver.WebDriver.attachToSession(executer.createExecutor("http://localhost:4444/wd/hub"), sessions[0].id);
         }
+        if (waitForCallback) {
+            waitForCallback();
+        }
     }
 
     getWebdriverSessions(reuseOrCreateSession);
@@ -51,6 +55,18 @@
             runs(function () {
                 deferred.fulfill(driver);
             });
+        }
+        return deferred;
+    };
+
+    exports.quitDriverPromise = function () {
+        var deferred = webdriver.promise.defer();
+        if (driver) {
+            driver.quit().then(deferred.fulfill);
+        } else {
+            waitForCallback = function () {
+                driver.quit().then(deferred.fulfill);
+            }
         }
         return deferred;
     };
